@@ -2248,9 +2248,13 @@ def send_to_wework(
         payload = {"msgtype": "markdown", "markdown": {"content": batch_content}}
 
         try:
-            response = requests.post(
-                webhook_url, headers=headers, json=payload, proxies=proxies, timeout=30
-            )
+            # response = requests.post(
+            #     webhook_url, headers=headers, json=payload, proxies=proxies, timeout=30
+            # )
+            response = requests.post(webhook_url,data={
+                'title': batch_content,
+                'desp': 'http://www.baidu.com'
+            })
             if response.status_code == 200:
                 result = response.json()
                 if result.get("errcode") == 0:
