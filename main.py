@@ -2233,25 +2233,52 @@ def send_to_wework(
 
     print(f"企业微信消息分为 {len(batches)} 批次发送 [{report_type}]")
 
-    response = requests.post(webhook_url, data={
-        'title': '每日新闻',
-        'desp': report_data
-    })
-    if response.status_code == 200:
-        result = response.json()
-        if result.get("errcode") == 0:
-            pass
-        else:
-
-            return False
-    else:
+    # response = requests.post(webhook_url, data={
+    #     'title': '每日新闻',
+    #     'desp': batches
+    # })
+    # 逐批发送
+    for i, batch_content in enumerate(batches, 1):
+        batch_size = len(batch_content.encode("utf-8"))
         print(
-            f"企业微信发送失败 [{report_type}]，状态码：{response.status_code}"
+            f"发送企业微信第 {i}/{len(batches)} 批次，大小：{batch_size} 字节 [{report_type}]"
         )
-        return False
 
-    print(f"企业微信所有 {len(batches)} 批次发送完成 [{report_type}]")
-    return True
+        # 添加批次标识
+        if len(batches) > 1:
+            batch_header = f"**[第 {i}/{len(batches)} 批次]**\n\n"
+            batch_content = batch_header + batch_content
+
+        payload = {"msgtype": "markdown", "markdown": {"content": batch_content}}
+
+        try:
+            # response = requests.post(
+            #     webhook_url, headers=headers, json=payload, proxies=proxies, timeout=30
+            # )
+            response = requests.post(webhook_url, data={
+                'title': '每日新闻',
+                'desp': batch_content
+            })
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("errcode") == 0:
+                    print(f"企业微信第 {i}/{len(batches)} 批次发送成功 [{report_type}]")
+                    # 批次间间隔
+                    if i < len(batches):
+                        time.sleep(CONFIG["BATCH_SEND_INTERVAL"])
+                else:
+                    print(
+                        f"企业微信第 {i}/{len(batches)} 批次发送失败 [{report_type}]，错误：{result.get('errmsg')}"
+                    )
+                    return False
+            else:
+                print(
+                    f"企业微信第 {i}/{len(batches)} 批次发送失败 [{report_type}]，状态码：{response.status_code}"
+                )
+                return False
+        except Exception as e:
+            print(f"企业微信第 {i}/{len(batches)} 批次发送出错 [{report_type}]：{e}")
+            return False
 
 
 def send_to_telegram(
